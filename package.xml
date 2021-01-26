@@ -1,9 +1,9 @@
   
 <?xml version="1.0"?>
 <package format="2">
-  <name>my_mir100_robot_server</name>
+  <name>task_on_nav_robot_server</name>
   <version>1.0.0</version>
-  <description>My Robot Server for MiR 100</description>
+  <description>Robot Server for task assuming on Navigation Stack with MiR 100</description>
 
   <license>MIT</license>
 
