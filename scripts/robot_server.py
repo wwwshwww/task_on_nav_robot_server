@@ -7,8 +7,8 @@ from .ros_bridge import RosBridge
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2, robot_server_pb2_grpc
 
 class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
-    def __init__(self, real_robot):
-        self.rosbridge = RosBridge(real_robot=real_robot)
+    def __init__(self, real_robot, wait_moved):
+        self.rosbridge = RosBridge(real_robot=real_robot, wait_moved=wait_moved)
 
     def GetState(self, request, context):
         try:
@@ -25,7 +25,7 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
 
     def SendAction(self, request, context):
         try:
-            pos_x, pos_y, rot_z = self.rosbridge.call_move_base_2d(request.action[0], request.action[1], request.action[2])
+            pos_x, pos_y, rot_z = self.rosbridge.call_move_base(request.action[0], request.action[1], request.action[2])
             return robot_server_pb2.Success(success=1)
         except:
             return robot_server_pb2.Success(success=0)
@@ -33,9 +33,10 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
 def serve():
     server_port = rospy.get_param("~server_port")
     real_robot = rospy.get_param("~real_robot")
+    wait_moved = rospy.get_param("~wait_moved")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     robot_server_pb2_grpc.add_RobotServerServicer_to_server(
-        RobotServerServicer(real_robot= real_robot), server)
+        RobotServerServicer(real_robot=real_robot, wait_moved=wait_moved), server)
     server.add_insecure_port('[::]:'+repr(server_port))
     server.start()
     if real_robot:
