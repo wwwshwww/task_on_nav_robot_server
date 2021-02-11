@@ -41,11 +41,13 @@ class RosBridge:
         self.target_pub = rospy.Publisher('target_markers', MarkerArray, queue_size=10)
         
         if self.real_robot:
-            rospy.Subscriber("odom", Odometry, self.callbackOdometry, queue_size=1)
+            rospy.Subscriber("odom", Odometry, self.callback_odometry, queue_size=1)
         else:
-            rospy.Subscriber("odom_comb", Odometry, self.callbackOdometry, queue_size=1)
+            rospy.Subscriber("odom_comb", Odometry, self.callback_odometry, queue_size=1)
             
-        rospy.Subscriber("mir_collision", ContactsState, self.collision_callback)
+        rospy.Subscriber("mir_collision", ContactsState, self.callback_collision)
+        rospy.Subscriber("robot_pose", Pose, self.callback_state, queue_size=1)
+        rospy.Subscriber("map", OccupancyGrid, self.callback_map, queue_size=1)
         
         self.mir_start_state = None
         
@@ -87,10 +89,13 @@ class RosBridge:
 
             trans = tfBuffer.lookup_transform("world", "map", rospy.Time(), rospy.Duration(1.0))
             v = PyKDL.Vector(trans.transform.translation.x,trans.transform.translation.y,trans.transform.translation.z)
-            r = PyKDL.Rotation.Quaternion(trans.transform.rotation.x,trans.transform.rotation.y,trans.transform.rotation.z,trans.transform.rotation.w)
+            r = PyKDL.Rotation.Quaternion(
+                trans.transform.rotation.x,
+                trans.transform.rotation.y,
+                trans.transform.rotation.z,
+                trans.transform.rotation.w
+            )
             self.world_to_map = PyKDL.Frame(r,v)
-        
-        rospy.Subscriber("robot_pose", Pose, self.callbackState, queue_size=1)
         
         # Initialize Path
         self.mir_path = Path()
@@ -294,7 +299,7 @@ class RosBridge:
             
         self.target_pub.publish(marker_array)
         
-    def callbackState(self, data):
+    def callback_state(self, data):
         # If state is not being reset proceed otherwise skip callback
         if self.reset.isSet():
             if self.real_robot:
@@ -327,7 +332,7 @@ class RosBridge:
         else:
             pass
     
-    def callbackOdometry(self, data):
+    def callback_odometry(self, data):
         lin_vel = data.twist.twist.linear.x
         ang_vel = data.twist.twist.angular.z
 
@@ -354,8 +359,4 @@ class RosBridge:
     def get_robot_state(self):
         # method to get robot position from real mir
         return self.robot_pose.x, self.robot_pose.y, self.robot_pose.theta, self.robot_twist.linear.x, self.robot_twist.linear.y, self.robot_twist.angular.z
-    
-    def odometry_callback(self,data):
-        # Save robot velocities from Odometry internally
-        self.robot_twist = data.twist.twist
         
