@@ -25,7 +25,9 @@
   <include file="$(find mir_gazebo)/launch/fake_localization.launch"></include>
   
   <!-- Launch slam node -->
-  <include file="$(find mir_navigation)/launch/hector_mapping.launch.xml"></include>
+  <include file="$(find mir_navigation)/launch/hector_mapping.launch.xml">
+    <arg name="map_size" value="256" />
+  </include>
   
   <!-- Launch move_base -->
   <include file="$(find mir_navigation)/launch/move_base.xml">

@@ -52,6 +52,7 @@ class RosBridge:
         self.mir_start_state = None
         
         self.map_data = None
+        self.map_data_full = None
         self.mir_pose = [0.0] * 3
         self.mir_twist = [0.0] * 2
         self.collision = False
@@ -118,18 +119,10 @@ class RosBridge:
         mir_pose = copy.deepcopy(self.mir_pose)
         mir_twist = copy.deepcopy(self.mir_twist)
         is_collision = copy.deepcopy(self.collision)
-        
-        obstacle_count = 0
-        obstacle_size = 0.0
-        target_size = 0.0
-        room_length_max = 0.0
-        room_mass_min = 0.0
-        room_mass_max = 0.0
-        room_wall_height = 0.0
-        room_wall_thickness = 0.0
 
         obstacles = copy.deepcopy(self.obstacles)
         targets = copy.deepcopy(self.targets)
+        map_data = copy.deepcopy(self.map_data)
         
         self.get_state_event.set()
         
@@ -138,16 +131,17 @@ class RosBridge:
         msg.state.extend(mir_pose)
         msg.state.extend(mir_twist)
         msg.state.extend([is_collision])
-        msg.state.extend([obstacle_count])
-        msg.state.extend([obstacle_size])
-        msg.state.extend([target_size])
-        msg.state.extend([room_length_max])
-        msg.state.extend([room_mass_min])
-        msg.state.extend([room_mass_max])
-        msg.state.extend([room_wall_height])
-        msg.state.extend([room_wall_thickness])
+        msg.state.extend([self.room_generator_params['obstacle_count']])
+        msg.state.extend([self.room_generator_params['obstacle_size']])
+        msg.state.extend([self.room_generator_params['target_size']])
+        msg.state.extend([self.room_generator_params['room_length_max']])
+        msg.state.extend([self.room_generator_params['room_mass_min']])
+        msg.state.extend([self.room_generator_params['room_mass_max']])
+        msg.state.extend([self.room_generator_params['room_wall_height']])
+        msg.state.extend([self.room_generator_params['room_wall_thickness']])
         msg.state.extend(obstacles)
         msg.state.extend(targets)
+        msg.state.extend(map_data)
         msg.success = 1
         
         return msg
@@ -157,9 +151,9 @@ class RosBridge:
         
         self.reset.clear()
         
-        self.mir_path=Path()
-        self.mir_path.header.stamp=rospy.Time.now()
-        self.mir_path.header.frame_id=self.path_frame
+        self.mir_path = Path()
+        self.mir_path.header.stamp = rospy.Time.now()
+        self.mir_path.header.frame_id = self.path_frame
         
         self.room_generator_params['obstacle_count'] = copy.deepcopy(state[6])
         self.room_generator_params['obstacle_size'] = copy.deepcopy(state[7])
@@ -171,12 +165,15 @@ class RosBridge:
         self.room_generator_params['room_wall_thickness'] = copy.deepcopy(state[13])
         
         if not self.real_robot:
-            if self.room_generator is None:
-                room = self.gen_simulation_room(new_generator=True)
-            else:
-                room = self.gen_simulation_room(new_generator=False)
-
-            self.mir_start_state = self.gen_agent_state(room, self.generator_params['agent_size'])
+            room = self.gen_simulation_room(new_generator=self.room_generator is None)
+            pos_x, pos_y, ori_z = self.gen_agent_state(room, self.generator_params['agent_size'])
+            self.map_data_full = room.get_occupancy_grid(
+                freespace_poly=room.get_freespace_poly(),
+                origin_pos=(pos_x, pos_y),
+                origin_ori=ori_z
+            )
+            self.mir_start_state = self.xyz_to_modelstate(pos_x, pos_y, ori_z)
+            self.publish_target_markers(room.target_pose[''])
             self.set_env_state(room, self.mir_start_state)
         
         self.reset_navigation()
@@ -219,7 +216,9 @@ class RosBridge:
         freezone = room.get_freezone_poly().buffer(-1*threshold, cap_style=2, join_style=2)
         pos_x, pos_y = trimesh.path.polygons.sample(freezone, 1)
         ori_z = np.random.rand()*np.pi*2
+        return pos_x, pos_y, ori_z
         
+    def xyz_to_modelstate(self, pos_x, pos_y, ori_z):
         start_state = ModelState()
         start_state.model_name = 'mir'
         start_state.pose.position.x = pos_x
