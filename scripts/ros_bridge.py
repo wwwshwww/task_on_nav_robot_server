@@ -170,20 +170,23 @@ class RosBridge:
                 a_pos_x, a_pos_y, a_ori_z = self.gen_agent_state(self.room_config, self.generator_params['agent_size'])
             elif len(state) > ignore_index+1:
                 # Regenerate all state
+                same_all = all([state[ignore_index+i] == self.roomgenerator_params[tag] for i, tag in enumerate(self.rgp_tags)])
                 
-                same = [state[ignore_index+i+1] == self.roomgenerator_params[self.rgp_tags[i]] for i in range(len(self.rgp_tags))]
-                
-                if not all(same):
-                    self.room_generator_params['obstacle_count'] = copy.deepcopy(state[ignore_index+1])
-                    self.room_generator_params['obstacle_size'] = copy.deepcopy(state[ignore_index+2])
-                    self.room_generator_params['target_size'] = copy.deepcopy(state[ignore_index+3])
-                    self.room_generator_params['room_length_max'] = copy.deepcopy(state[ignore_index+4])
-                    self.room_generator_params['room_mass_min'] = copy.deepcopy(state[ignore_index+5])
-                    self.room_generator_params['room_mass_max'] = copy.deepcopy(state[ignore_index+6])
-                    self.room_generator_params['room_wall_height'] = copy.deepcopy(state[ignore_index+7])
-                    self.room_generator_params['room_wall_thickness'] = copy.deepcopy(state[ignore_index+8])
+                if not same_all:
+                    # Update parameter what use when generate room
+                    for i, tag in enumerate(self.rgp_tags):
+                        self.room_generator_params[tag] = copy.deepcopy(state[ignore_index+i])
+                        
+#                     self.room_generator_params['obstacle_count'] = copy.deepcopy(state[ignore_index+1])
+#                     self.room_generator_params['obstacle_size'] = copy.deepcopy(state[ignore_index+2])
+#                     self.room_generator_params['target_size'] = copy.deepcopy(state[ignore_index+3])
+#                     self.room_generator_params['room_length_max'] = copy.deepcopy(state[ignore_index+4])
+#                     self.room_generator_params['room_mass_min'] = copy.deepcopy(state[ignore_index+5])
+#                     self.room_generator_params['room_mass_max'] = copy.deepcopy(state[ignore_index+6])
+#                     self.room_generator_params['room_wall_height'] = copy.deepcopy(state[ignore_index+7])
+#                     self.room_generator_params['room_wall_thickness'] = copy.deepcopy(state[ignore_index+8])
 
-                self.room_config = self.gen_simulation_room(new_generator=self.room_generator is None or not all(same))
+                self.room_config = self.gen_simulation_room(new_generator=self.room_generator is None or not same_all)
                 self.targets = self._spawnconfig_to_xyr(self.room_config.target_pose)
                 self.obstacles = self._spawnconfig_to_xyr(self.room_config.obstacle_pose)
                 a_pos_x, a_pos_y, a_ori_z = self.gen_agent_state(self.room_config, self.generator_params['agent_size'])
@@ -197,7 +200,8 @@ class RosBridge:
             self.set_env_state(self.room_config, self.mir_start_state)
             
         else:
-            self.targets = np.reshape(state[ignore_index+9:], (len(state[ignore_index+9:])//3, 3))
+            target_space = state[ignore_index+len(self.rgp_tags):]
+            self.targets = np.reshape(target_space, (len(target_space)//3, 3))
             
         self.publish_target_markers(self.targets)
         self.reset_navigation()
@@ -387,8 +391,4 @@ class RosBridge:
             self.collision = False
         else:
             self.collision = True
-            
-    def get_robot_state(self):
-        # method to get robot position from real mir
-        return self.robot_pose.x, self.robot_pose.y, self.robot_pose.theta, self.robot_twist.linear.x, self.robot_twist.linear.y, self.robot_twist.angular.z
         
