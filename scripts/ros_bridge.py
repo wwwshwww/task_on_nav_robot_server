@@ -49,7 +49,7 @@ class RosBridge:
         rospy.Subscriber("robot_pose", Pose, self.callback_state, queue_size=1)
         rospy.Subscriber("map", OccupancyGrid, self.callback_map, queue_size=1)
         
-        self.mir_start_state = None
+        self.mir_start_state = ModelState()
         
         self.map_size = None
         self.map_data = None
@@ -125,7 +125,8 @@ class RosBridge:
         mir_pose = copy.deepcopy(self.mir_pose)
         mir_twist = copy.deepcopy(self.mir_twist)
         is_collision = copy.deepcopy(self.collision)
-        is_change_mir_pose = copy.deepcopy(self.is_change_mir_pose)
+        is_change_room = 0
+        is_change_mir_pose = 0
 
         targets = copy.deepcopy(self.targets)
         map_size = copy.deepcopy(self.map_size)
@@ -144,6 +145,7 @@ class RosBridge:
         msg.state.extend(mir_pose)
         msg.state.extend(mir_twist)
         msg.state.extend([is_collision])
+        msg.state.extend([is_change_room])
         msg.state.extend([is_change_mir_pose])
         msg.state.extend(rgp)
         msg.state.extend(targets)
@@ -163,44 +165,38 @@ class RosBridge:
         self.map_size = copy.deepcopy(state[0])
         
         ignore_index = (self.map_size**2)*2 + 7
+        is_change_room = state[ignore_index]
+        is_change_robot = state[ignore_index+1]
         
         if not self.real_robot:
-            if len(state) == ignore_index+1:
-                # Regenerate only starting state of agent
-                a_pos_x, a_pos_y, a_ori_z = self.gen_agent_state(self.room_config, self.generator_params['agent_size'])
-            elif len(state) > ignore_index+1:
-                # Regenerate all state
-                same_all = all([state[ignore_index+i] == self.roomgenerator_params[tag] for i, tag in enumerate(self.rgp_tags)])
+            if is_change_room:
+                same_all = all([state[ignore_index+i+2] == self.roomgenerator_params[tag] for i, tag in enumerate(self.rgp_tags)])
                 
                 if not same_all:
                     # Update parameter what use when generate room
                     for i, tag in enumerate(self.rgp_tags):
-                        self.room_generator_params[tag] = copy.deepcopy(state[ignore_index+i])
+                        self.room_generator_params[tag] = copy.deepcopy(state[ignore_index+i+2])
                         
-#                     self.room_generator_params['obstacle_count'] = copy.deepcopy(state[ignore_index+1])
-#                     self.room_generator_params['obstacle_size'] = copy.deepcopy(state[ignore_index+2])
-#                     self.room_generator_params['target_size'] = copy.deepcopy(state[ignore_index+3])
-#                     self.room_generator_params['room_length_max'] = copy.deepcopy(state[ignore_index+4])
-#                     self.room_generator_params['room_mass_min'] = copy.deepcopy(state[ignore_index+5])
-#                     self.room_generator_params['room_mass_max'] = copy.deepcopy(state[ignore_index+6])
-#                     self.room_generator_params['room_wall_height'] = copy.deepcopy(state[ignore_index+7])
-#                     self.room_generator_params['room_wall_thickness'] = copy.deepcopy(state[ignore_index+8])
-
                 self.room_config = self.gen_simulation_room(new_generator=self.room_generator is None or not same_all)
                 self.targets = self._spawnconfig_to_xyr(self.room_config.target_pose)
                 self.obstacles = self._spawnconfig_to_xyr(self.room_config.obstacle_pose)
-                a_pos_x, a_pos_y, a_ori_z = self.gen_agent_state(self.room_config, self.generator_params['agent_size'])
-                
-            self.map_data_trueth = self.room_config.get_occupancy_grid(
-                freespace_poly=self.room_config.get_freespace_poly(),
-                origin_pos=(a_pos_x, a_pos_y),
-                origin_ori=a_ori_z
-            )
-            self.mir_start_state = self._xyr_to_modelstate(a_pos_x, a_pos_y, a_ori_z)
+            
+            if is_change_robot:
+                pos_x, pos_y, ori_z = self.gen_agent_state(self.room_config, self.generator_params['agent_size'])
+                self.mir_start_state = self._xyr_to_modelstate(pos_x, pos_y, ori_z)
+            
+            if is_change_room or is_change_robot:
+                px, py, oz = self._modelstate_to_xyr(self.mir_start_state)
+                self.map_data_trueth = self.room_config.get_occupancy_grid(
+                    freespace_poly=self.room_config.get_freespace_poly(),
+                    origin_pos=(px, py),
+                    origin_ori=oz
+                )
+            
             self.set_env_state(self.room_config, self.mir_start_state)
             
         else:
-            target_space = state[ignore_index+len(self.rgp_tags):]
+            target_space = state[ignore_index+2+len(self.rgp_tags):]
             self.targets = np.reshape(target_space, (len(target_space)//3, 3))
             
         self.publish_target_markers(self.targets)
