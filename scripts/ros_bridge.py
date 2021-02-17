@@ -285,16 +285,16 @@ class RosBridge:
     def reset_navigation(self, slam_method='hector'):
         if slam_method == 'hector':
             slam_reset_pub = rospy.Publisher('/syscommand', String)
-            slam_reset_pub.publish("data: 'reset'")
+            slam_reset_pub.publish("reset")
         else:
             pass
         
-        rospy.wait_for_service('/move_base/clear_costmaps')
-        rospy.wait_for_service('/move_base/clear_unknown_space')
+        rospy.wait_for_service('/move_base_node/clear_costmaps')
+        rospy.wait_for_service('/move_base_node/clear_unknown_space')
         try:
-            clear_costmap_client = rospy.ServiceProxy('/move_base/clear_costmaps', Empty)
+            clear_costmap_client = rospy.ServiceProxy('/move_base_node/clear_costmaps', Empty)
             clear_costmap_client(Empty())
-            clear_unknown_client = rospy.ServiceProxy('/move_base/clear_unknown_space', Empty)
+            clear_unknown_client = rospy.ServiceProxy('/move_base_node/clear_unknown_space', Empty)
             clear_unknown_client(Empty())
         except rospy.ServiceException as e:
             print("Service call failed:" + e)
