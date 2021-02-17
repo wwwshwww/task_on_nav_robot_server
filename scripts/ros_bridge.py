@@ -193,7 +193,7 @@ class RosBridge:
                     origin_ori=oz
                 )
             
-            self.set_env_state(self.room_config, self.mir_start_state)
+            self.set_env_state(self.room_config, self.mir_start_state, spawn=is_change_room)
             
         else:
             target_space = state[ignore_index+2+len(self.rgp_tags):]
@@ -271,7 +271,7 @@ class RosBridge:
     def _modelstate_to_xyr(self, modelstate):
         return modelstate.pose.position.x, modelstate.pose.position.y, modelstate.pose.orientation.z
     
-    def set_env_state(self, room, agent_state):
+    def set_env_state(self, room, agent_state, spawn=True):
         rospy.wait_for_service('/gazebo/set_model_state')
         try:
             set_model_state_client = rospy.ServiceProxy('/gazebo/set_model_state/', SetModelState)
@@ -280,7 +280,8 @@ class RosBridge:
             print("Service call failed:" + e)
             
         # Spawn models to Gazebo world and sleep until it done
-        room.spawn_all()
+        if spawn:
+            room.spawn_all()
     
     def reset_navigation(self, slam_method='hector'):
         if slam_method == 'hector':
