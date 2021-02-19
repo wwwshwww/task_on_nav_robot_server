@@ -12,6 +12,11 @@
   <arg name="robot_yaw" default="0.0" />
   
   <arg name="map_size" default="256">
+  <arg name="agent_size" default="0.35">
+  <arg name="wall_threshold" default="0.01">
+  
+  <rosparam param="agent_size">$(arg agent_size)</rosparam>
+  <rosparam param="wall_threshold">$(arg wall_threshold)</rosparam>
 
   <!-- spawn robot and bring up controllers etc. -->
   <include file="$(find mir_gazebo)/launch/mir_empty_world.launch">

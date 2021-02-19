@@ -77,8 +77,8 @@ class RosBridge:
         self.room_generator_params['room_wall_thickness'] = 0.05
         
         # parameter as not state
-        self.room_generator_params['agent_size'] = 0.3
-        self.room_generator_params['wall_threshold'] = 0.01
+        self.room_generator_params['agent_size'] = rospy.get_param("/agent_size") # default 0.3
+        self.room_generator_params['wall_threshold'] = rospy.get_param("/wall_threshold") # default 0.01 
         
         # Room's infomation
         self.obstacles = [] # [3,n]
@@ -376,7 +376,7 @@ class RosBridge:
         if self.get_state_event.isSet():
             info = data['info']
             self.map_data = copy.deepcopy(data['data'])
-            self.self.map_resolution = info['resolurion']
+            self.self.map_resolution = info['resolution']
             self.map_height_i = info['height']
             self.map_width_j = info['width']
             self.map_origin = info['origin']
