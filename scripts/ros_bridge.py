@@ -187,11 +187,12 @@ class RosBridge:
             
             if is_change_room or is_change_robot:
                 px, py, oz = self._modelstate_to_xyr(self.mir_start_state)
-                self.map_data_trueth = self.room_config.get_occupancy_grid(
+                map_trueth = self.room_config.get_occupancy_grid(
                     freespace_poly=self.room_config.get_freespace_poly(),
                     origin_pos=(px, py),
                     origin_ori=oz
                 )
+                self.map_data_trueth = np.reshape(map_trueth, (self.map_size**2,))
             
             self.set_env_state(self.room_config, self.mir_start_state, spawn=is_change_room)
             
