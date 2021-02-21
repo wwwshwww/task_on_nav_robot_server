@@ -30,11 +30,11 @@ class RosBridge:
         # Event is clear while initialization or set_state is going on
         self.reset = Event()
         self.reset.clear()
-        self.get_state_event()
+        self.get_state_event = Event()
         self.get_state_event.set()
         
         self.real_robot = real_robot
-        self.wait_moved = wait_move
+        self.wait_moved = wait_moved
         
         self.move_base_client = actionlib.SimpleActionClient('/move_base', MoveBaseAction)
         self.mir_exec_path = rospy.Publisher('mir_exec_path', Path, queue_size=10)
@@ -117,6 +117,8 @@ class RosBridge:
         
         self.rate = rospy.Rate(10) #30Hz
         self.reset.set()
+        
+        rospy.loginfo("instance initialized")
         
     def get_state(self):
         self.get_state_event.clear()
@@ -375,12 +377,12 @@ class RosBridge:
         
     def callback_map(self, data):
         if self.get_state_event.isSet():
-            info = data['info']
-            self.map_data = copy.deepcopy(data['data'])
-            self.self.map_resolution = info['resolution']
-            self.map_height_i = info['height']
-            self.map_width_j = info['width']
-            self.map_origin = info['origin']
+            info = data.info
+            self.map_data = copy.deepcopy(data.data)
+            self.map_resolution = info.resolution
+            self.map_height_i = info.height
+            self.map_width_j = info.width
+            self.map_origin = info.origin
         else:
             pass
         

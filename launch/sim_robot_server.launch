@@ -5,7 +5,9 @@
   <arg name="world_path" default = "$(find task_on_nav_robot_server)/worlds" />
   <arg name="world_name" default="empty_world.world"/>
   <arg name="world" value ="$(arg world_path)/$(arg world_name)"/>
-  <arg name="server_port" default ="50051"/>
+  <arg name="server_port" default="50051"/>
+  
+  <arg name="wait_moved" default="true" />
 
   <arg name="robot_x"   default="0.0" />
   <arg name="robot_y"   default="0.0" />
@@ -15,8 +17,9 @@
   <arg name="agent_size" default="0.35" />
   <arg name="wall_threshold" default="0.01" />
   
-  <rosparam param="agent_size">$(arg agent_size)</rosparam>
-  <rosparam param="wall_threshold">$(arg wall_threshold)</rosparam>
+  <rosparam param="wait_moved" subst_value="True">$(arg wait_moved)</rosparam>
+  <rosparam param="agent_size" subst_value="True">$(arg agent_size)</rosparam>
+  <rosparam param="wall_threshold" subst_value="True">$(arg wall_threshold)</rosparam>
 
   <!-- spawn robot and bring up controllers etc. -->
   <include file="$(find mir_gazebo)/launch/mir_empty_world.launch">
