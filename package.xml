@@ -1,11 +1,14 @@
-  
 <?xml version="1.0"?>
 <package format="2">
   <name>task_on_nav_robot_server</name>
   <version>1.0.0</version>
   <description>Robot Server for task assuming on Navigation Stack with MiR 100</description>
 
+  <maintainer email="www.shinderu.www@gmail.com">hoa</maintainer>
+
   <license>MIT</license>
+
+  <author email="www.shinderu.www@gmail.com">hoa</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
