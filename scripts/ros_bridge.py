@@ -10,6 +10,7 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from geometry_msgs.msg import Twist, Pose, Pose2D, PoseStamped
 from nav_msgs.msg import Odometry, Path, OccupancyGrid
 from visualization_msgs.msg import MarkerArray, Marker
+from gazebo_msgs.srv import GetModelState, SetModelState
 from gazebo_msgs.msg import ModelState, ContactsState
 from std_msgs.msg import String
 from std_srvs.srv import Empty
@@ -26,6 +27,7 @@ from roomor.generator import CubeRoomGenerator
 class RosBridge:
     
     def __init__(self, real_robot=False, wait_moved=True):
+        self.gazebo_proxy = self.get_gazebo_proxy()
         
         # Event is clear while initialization or set_state is going on
         self.reset = Event()
@@ -51,9 +53,9 @@ class RosBridge:
         
         self.mir_start_state = ModelState()
         
-        self.map_size = None
-        self.map_data = None
-        self.map_data_trueth = None
+        self.map_size = 256
+        self.map_data = [0] * (self.map_size**2)
+        self.map_data_trueth = [0] * (self.map_size**2)
         self.mir_pose = [0.0] * 3
         self.mir_twist = [0.0] * 2
         self.collision = False
@@ -70,15 +72,17 @@ class RosBridge:
         self.room_generator_params['obstacle_count'] = 10
         self.room_generator_params['obstacle_size'] = 0.7
         self.room_generator_params['target_size'] = 0.2
-        self.room_generator_params['room_length_max'] = 9
+        self.room_generator_params['room_length_max'] = 9.0
         self.room_generator_params['room_mass_min'] = 20
         self.room_generator_params['room_mass_max'] = 36
         self.room_generator_params['room_wall_height'] = 0.8
         self.room_generator_params['room_wall_thickness'] = 0.05
         
         # parameter as not state
-        self.room_generator_params['agent_size'] = rospy.get_param("/agent_size") # default 0.3
+        self.room_generator_params['agent_size'] = rospy.get_param("/agent_size") # default 0.35
+#         self.room_generator_params['agent_size'] = 0.35
         self.room_generator_params['wall_threshold'] = rospy.get_param("/wall_threshold") # default 0.01 
+#         self.room_generator_params['wall_threshold'] = 0.01
         
         # Room's infomation
         self.obstacles = [] # [3,n]
@@ -131,6 +135,9 @@ class RosBridge:
         is_change_mir_pose = 0
 
         targets = copy.deepcopy(self.targets)
+        if len(targets) != 0:
+            targets = targets.flatten()
+        
         map_size = copy.deepcopy(self.map_size)
         map_data = copy.deepcopy(self.map_data)
         map_data_trueth = copy.deepcopy(self.map_data_trueth)
@@ -164,45 +171,67 @@ class RosBridge:
         self.mir_path.header.stamp = rospy.Time.now()
         self.mir_path.header.frame_id = self.path_frame
         
-        self.map_size = copy.deepcopy(state[0])
+        self.map_size = int(copy.deepcopy(state[0]))
         
         ignore_index = (self.map_size**2)*2 + 7
-        is_change_room = state[ignore_index]
-        is_change_robot = state[ignore_index+1]
+        is_change_room = int(state[ignore_index])
+        is_change_robot = int(state[ignore_index+1])
+        state[ignore_index+2] = int(state[ignore_index+2])
         
         if not self.real_robot:
             if is_change_room:
-                same_all = all([state[ignore_index+i+2] == self.roomgenerator_params[tag] for i, tag in enumerate(self.rgp_tags)])
+                rospy.loginfo(state[ignore_index+2:])
+                same_all = all(
+                    [state[ignore_index+i+2] == self.room_generator_params[tag] for i, tag in enumerate(self.rgp_tags)]
+                )
                 
                 if not same_all:
                     # Update parameter what use when generate room
                     for i, tag in enumerate(self.rgp_tags):
                         self.room_generator_params[tag] = copy.deepcopy(state[ignore_index+i+2])
+                
+                self.room_generator_params['obstacle_count'] = int(copy.deepcopy(state[ignore_index+2]))
                         
-                self.room_config = self.gen_simulation_room(new_generator=self.room_generator is None or not same_all)
+                self.room_config = self.gen_simulation_room((self.room_generator is None) or (not same_all))
                 self.targets = self._spawnconfig_to_xyr(self.room_config.target_pose)
                 self.obstacles = self._spawnconfig_to_xyr(self.room_config.obstacle_pose)
+                
+                rospy.loginfo("\n\n\n{}:{}\n\n\n".format(self.targets, self.obstacles))
+                
             
             if is_change_robot:
-                pos_x, pos_y, ori_z = self.gen_agent_state(self.room_config, self.generator_params['agent_size'])
+                pos_x, pos_y, ori_z = self.gen_agent_state(
+                    self.room_config, 
+                    self.room_generator_params['agent_size'],
+                    self.room_generator_params['wall_threshold']
+                )
+                
                 self.mir_start_state = self._xyr_to_modelstate(pos_x, pos_y, ori_z)
             
-            if is_change_room or is_change_robot:
-                px, py, oz = self._modelstate_to_xyr(self.mir_start_state)
-                map_trueth = self.room_config.get_occupancy_grid(
-                    freespace_poly=self.room_config.get_freespace_poly(),
-                    origin_pos=(px, py),
-                    origin_ori=oz
-                )
-                self.map_data_trueth = np.reshape(map_trueth, (self.map_size**2,))
+            import sys
+            try:
+                if is_change_room or is_change_robot:
+                    px, py, oz = self._modelstate_to_xyr(self.mir_start_state)
+                    rospy.loginfo("\n\n{},{},{}\n\n".format(px,py,oz))
+                    map_trueth = self.room_config.get_occupancy_grid(
+                        freespace_poly=self.room_config.get_freespace_poly(),
+                        origin_pos=(px, py),
+                        origin_ori=oz
+                    )
+                    self.map_data_trueth = np.reshape(map_trueth, (int(self.map_size)**2,))
             
-            self.set_env_state(self.room_config, self.mir_start_state, spawn=is_change_room)
+#             self.set_env_state(self.room_config, self.mir_start_state, spawn=is_change_room)
+
+            except Exception as e:
+                rospy.loginfo("\n\n{}:{}\n\n".format(type(e),sys.exc_info()))
             
         else:
             target_space = state[ignore_index+2+len(self.rgp_tags):]
             self.targets = np.reshape(target_space, (len(target_space)//3, 3))
             
-        self.publish_target_markers(self.targets)
+        if len(self.targets) > 0:
+            self.publish_target_markers(self.targets)
+            
         self.reset_navigation()
         self.reset.set()
         
@@ -239,17 +268,26 @@ class RosBridge:
         else:
             return self.move_base_client.get_state()
             
-    def gen_simulation_room(self, generator_params, new_generator=False):
-        if new_generator:
-            self.room_generator = CubeRoomGenerator(**generator_param)
+    def gen_simulation_room(self, new_generator=False):
+        try:
+            if new_generator:
+                d = copy.deepcopy(self.room_generator_params)
+                d.update(self.gazebo_proxy)
+                rospy.loginfo(str(d))
+                self.room_generator = CubeRoomGenerator(**d)
+                
+            room = self.room_generator.generate_new()
+        except Exception as e:
+            rospy.loginfo("{} Error occured when generating room: {}".format(type(e), e))
         
-        return self.room_generator.generate_new()
+        return room
     
-    def gen_agent_state(self, room, threshold):
-        freezone = room.get_freezone_poly().buffer(-1*threshold, cap_style=2, join_style=2)
-        pos_x, pos_y = trimesh.path.polygons.sample(freezone, 1)
+    def gen_agent_state(self, room, agent_size, wall_threshold):
+        thresh = wall_threshold + agent_size/2
+        freezone = room.get_freezone_poly().buffer(-thresh, cap_style=2, join_style=2)
+        pos = trimesh.path.polygons.sample(freezone, 1)
         ori_z = np.random.rand()*np.pi*2
-        return pos_x, pos_y, ori_z
+        return pos[0,0], pos[0,1], ori_z
         
     def _xyr_to_modelstate(self, pos_x, pos_y, ori_z):
         start_state = ModelState()
@@ -294,16 +332,13 @@ class RosBridge:
             pass
         
         rospy.wait_for_service('/move_base_node/clear_costmaps')
-        rospy.wait_for_service('/move_base_node/clear_unknown_space')
         try:
             clear_costmap_client = rospy.ServiceProxy('/move_base_node/clear_costmaps', Empty)
-            clear_costmap_client(Empty())
-            clear_unknown_client = rospy.ServiceProxy('/move_base_node/clear_unknown_space', Empty)
-            clear_unknown_client(Empty())
+            clear_costmap_client()
         except rospy.ServiceException as e:
             print("Service call failed:" + e)
     
-    def publish_target_makers(self, target_poses):
+    def publish_target_markers(self, target_poses):
         marker_array = MarkerArray()
         
         for i in range(len(target_poses)):
@@ -323,7 +358,7 @@ class RosBridge:
             m.pose.orientation.y = q_orientation[1]
             m.pose.orientation.z = q_orientation[2]
             m.pose.orientation.w = q_orientation[3]
-            m.id = 0
+            m.id = i
             m.header.stamp = rospy.Time.now()
             m.header.frame_id = self.path_frame
             m.color.a = 1.0
@@ -391,4 +426,21 @@ class RosBridge:
             self.collision = False
         else:
             self.collision = True
+            
+    def get_gazebo_proxy(self):
+        ros = rospy.get_master()
+        ros_host, ros_port = ros.target._ServerProxy__host.split(":")
+#         import os
+#         gazebo = os.getenv('GAZEBO_MASTER_URI')
+        gazebo = rospy.get_param("/gazebo_uri")
+        gazebo_host, gazebo_port = gazebo.split("//")[1].split(":")
+        
+        rospy.loginfo("ros_host:{}, ros_port:{}, gazebo_host:{}, gazebo_port:{}".format(ros_host, ros_port, gazebo_host, gazebo_port))
+        
+        return {
+            'ros_host': ros_host, 
+            'ros_port': int(ros_port), 
+            'gazebo_host': gazebo_host,
+            'gazebo_port': int(gazebo_port)
+        }
         

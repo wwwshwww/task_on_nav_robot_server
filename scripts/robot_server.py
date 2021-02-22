@@ -34,7 +34,7 @@ def serve():
     server_port = rospy.get_param("~server_port")
     real_robot = rospy.get_param("~real_robot")
     wait_moved = rospy.get_param("/wait_moved")
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     robot_server_pb2_grpc.add_RobotServerServicer_to_server(
         RobotServerServicer(real_robot=real_robot, wait_moved=wait_moved), server)
     server.add_insecure_port('[::]:'+repr(server_port))
