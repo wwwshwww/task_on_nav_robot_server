@@ -140,6 +140,9 @@ class RosBridge:
         
         map_size = copy.deepcopy(self.map_size)
         map_data = copy.deepcopy(self.map_data)
+        
+        rospy.loginfo(len(map_data))
+        
         map_data_trueth = copy.deepcopy(self.map_data_trueth)
         
         rgp = [copy.deepcopy(self.room_generator_params[tag]) for tag in self.rgp_tags]
@@ -180,7 +183,6 @@ class RosBridge:
         
         if not self.real_robot:
             if is_change_room:
-                rospy.loginfo(state[ignore_index+2:])
                 same_all = all(
                     [state[ignore_index+i+2] == self.room_generator_params[tag] for i, tag in enumerate(self.rgp_tags)]
                 )
@@ -195,9 +197,6 @@ class RosBridge:
                 self.room_config = self.gen_simulation_room((self.room_generator is None) or (not same_all))
                 self.targets = self._spawnconfig_to_xyr(self.room_config.target_pose)
                 self.obstacles = self._spawnconfig_to_xyr(self.room_config.obstacle_pose)
-                
-                rospy.loginfo("\n\n\n{}:{}\n\n\n".format(self.targets, self.obstacles))
-                
             
             if is_change_robot:
                 pos_x, pos_y, ori_z = self.gen_agent_state(
@@ -212,15 +211,16 @@ class RosBridge:
             try:
                 if is_change_room or is_change_robot:
                     px, py, oz = self._modelstate_to_xyr(self.mir_start_state)
-                    rospy.loginfo("\n\n{},{},{}\n\n".format(px,py,oz))
                     map_trueth = self.room_config.get_occupancy_grid(
                         freespace_poly=self.room_config.get_freespace_poly(),
                         origin_pos=(px, py),
-                        origin_ori=oz
+                        origin_ori=oz,
+                        resolution=self.map_resolution,
+                        map_size=int(self.map_size)
                     )
                     self.map_data_trueth = np.reshape(map_trueth, (int(self.map_size)**2,))
             
-#             self.set_env_state(self.room_config, self.mir_start_state, spawn=is_change_room)
+                self.set_env_state(self.room_config, self.mir_start_state, spawn=is_change_room)
 
             except Exception as e:
                 rospy.loginfo("\n\n{}:{}\n\n".format(type(e),sys.exc_info()))
@@ -313,9 +313,11 @@ class RosBridge:
         return modelstate.pose.position.x, modelstate.pose.position.y, modelstate.pose.orientation.z
     
     def set_env_state(self, room, agent_state, spawn=True):
+        rospy.loginfo(agent_state)
+        
         rospy.wait_for_service('/gazebo/set_model_state')
         try:
-            set_model_state_client = rospy.ServiceProxy('/gazebo/set_model_state/', SetModelState)
+            set_model_state_client = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
             set_model_state_client(agent_state)
         except rospy.ServiceException as e:
             print("Service call failed:" + e)
@@ -326,17 +328,22 @@ class RosBridge:
     
     def reset_navigation(self, slam_method='hector'):
         if slam_method == 'hector':
-            slam_reset_pub = rospy.Publisher('/syscommand', String)
+            slam_reset_pub = rospy.Publisher('/syscommand', String, latch=True)
             slam_reset_pub.publish("reset")
         else:
             pass
         
+        rospy.sleep(2)
+        
         rospy.wait_for_service('/move_base_node/clear_costmaps')
         try:
             clear_costmap_client = rospy.ServiceProxy('/move_base_node/clear_costmaps', Empty)
-            clear_costmap_client()
+            res = clear_costmap_client()
+            rospy.loginfo("\n\n\n\{}\n\n\n".format(res))
         except rospy.ServiceException as e:
-            print("Service call failed:" + e)
+            rospy.loginfo("Service call failed:" + e)
+            
+        rospy.sleep(0.5)
     
     def publish_target_markers(self, target_poses):
         marker_array = MarkerArray()
