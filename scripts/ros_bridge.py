@@ -207,18 +207,23 @@ class RosBridge:
                 
                 self.mir_start_state = self._xyr_to_modelstate(pos_x, pos_y, ori_z)
             
+            #### Must use map->odom_comb frame transform to get truethly occupancy grid map
+            
             import sys
             try:
                 if is_change_room or is_change_robot:
                     px, py, oz = self._modelstate_to_xyr(self.mir_start_state)
                     map_trueth = self.room_config.get_occupancy_grid(
                         freespace_poly=self.room_config.get_freespace_poly(),
-                        origin_pos=(px, py),
-                        origin_ori=oz,
+                        origin_pos=(-px, -py),
+                        origin_ori=0,
                         resolution=self.map_resolution,
                         map_size=int(self.map_size)
                     )
-                    self.map_data_trueth = np.reshape(map_trueth, (int(self.map_size)**2,))
+                    map_trueth_2d = np.reshape(map_trueth, (int(self.map_size),int(self.map_size)))
+                    map_trueth_2d = np.flipud(map_trueth_2d)
+                    map_trueth_2d = np.fliplr(map_trueth_2d)
+                    self.map_data_trueth = map_trueth_2d.flatten()
             
                 self.set_env_state(self.room_config, self.mir_start_state, spawn=is_change_room)
 
