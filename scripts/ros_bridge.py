@@ -124,8 +124,6 @@ class RosBridge:
         self.rate = rospy.Rate(10) #30Hz
         self.reset.set()
         
-        rospy.loginfo("instance initialized")
-        
     def get_state(self):
         self.get_state_event.clear()
         # Get environment state
@@ -142,8 +140,6 @@ class RosBridge:
         
         map_size = copy.deepcopy(self.map_size)
         map_data = copy.deepcopy(self.map_data)
-        
-        rospy.loginfo(len(map_data))
         
         map_data_trueth = copy.deepcopy(self.map_data_trueth)
         
@@ -253,7 +249,12 @@ class RosBridge:
         ]).T
     
     def call_move_base(self, pos_x, pos_y, ori_z):
-        self.move_base_client.wait_for_server()
+        import sys
+        try:
+            self.move_base_client.wait_for_server()
+        except:
+            rospy.loginfo("\n\n{}\n\n".format(sys.exc_info()))
+            
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = "map"
         goal.target_pose.header.stamp = rospy.Time.now()
@@ -281,7 +282,7 @@ class RosBridge:
             if new_generator:
                 d = copy.deepcopy(self.room_generator_params)
                 d.update(self.gazebo_proxy)
-                rospy.loginfo(str(d))
+                rospy.loginfo("CubeRoomGenerator paramater: {}".format(str(d)))
                 self.room_generator = CubeRoomGenerator(**d)
                 
             room = self.room_generator.generate_new()
@@ -322,7 +323,9 @@ class RosBridge:
         return modelstate.pose.position.x, modelstate.pose.position.y, modelstate.pose.orientation.z
     
     def set_env_state(self, room, agent_state, spawn=True):
-        rospy.loginfo(agent_state)
+        # Spawn models to Gazebo world and sleep until it done
+        if spawn:
+            room.spawn_all()
         
         rospy.wait_for_service('/gazebo/set_model_state')
         try:
@@ -331,23 +334,18 @@ class RosBridge:
         except rospy.ServiceException as e:
             print("Service call failed:" + e)
             
-        # Spawn models to Gazebo world and sleep until it done
-        if spawn:
-            room.spawn_all()
-    
     def reset_navigation(self, slam_method='hector'):
         if slam_method == 'hector':
             self.slam_reset_pub.publish("reset")
         else:
             pass
         
-        rospy.sleep(2)
+        rospy.sleep(3)
         
         rospy.wait_for_service('/move_base_node/clear_costmaps')
         try:
             clear_costmap_client = rospy.ServiceProxy('/move_base_node/clear_costmaps', Empty)
             res = clear_costmap_client()
-            rospy.loginfo("\n\n\n\{}\n\n\n".format(res))
         except rospy.ServiceException as e:
             rospy.loginfo("Service call failed:" + e)
             
