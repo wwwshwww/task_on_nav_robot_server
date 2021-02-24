@@ -42,6 +42,8 @@ class RosBridge:
         self.mir_exec_path = rospy.Publisher('mir_exec_path', Path, queue_size=10)
         self.target_pub = rospy.Publisher('target_markers', MarkerArray, queue_size=10)
         
+        self.slam_reset_pub = rospy.Publisher('/syscommand', String, latch=True)
+        
         if self.real_robot:
             rospy.Subscriber("odom", Odometry, self.callback_odometry, queue_size=1)
         else:
@@ -215,7 +217,7 @@ class RosBridge:
                     px, py, oz = self._modelstate_to_xyr(self.mir_start_state)
                     map_trueth = self.room_config.get_occupancy_grid(
                         freespace_poly=self.room_config.get_freespace_poly(),
-                        origin_pos=(-px, -py),
+                        origin_pos=(0,0),
                         origin_ori=0,
                         resolution=self.map_resolution,
                         map_size=int(self.map_size)
@@ -224,6 +226,7 @@ class RosBridge:
                     map_trueth_2d = np.flipud(map_trueth_2d)
                     map_trueth_2d = np.fliplr(map_trueth_2d)
                     self.map_data_trueth = map_trueth_2d.flatten()
+                    self.map_data_trueth = map_trueth
             
                 self.set_env_state(self.room_config, self.mir_start_state, spawn=is_change_room)
 
@@ -299,6 +302,7 @@ class RosBridge:
         start_state.model_name = 'mir'
         start_state.pose.position.x = pos_x
         start_state.pose.position.y = pos_y
+        start_state.pose.position.z = self.room_generator_params['obstacle_size']/2
         orientation = PyKDL.Rotation.RPY(0,0, ori_z)
         start_state.pose.orientation.x, \
             start_state.pose.orientation.y, \
@@ -333,8 +337,7 @@ class RosBridge:
     
     def reset_navigation(self, slam_method='hector'):
         if slam_method == 'hector':
-            slam_reset_pub = rospy.Publisher('/syscommand', String, latch=True)
-            slam_reset_pub.publish("reset")
+            self.slam_reset_pub.publish("reset")
         else:
             pass
         
