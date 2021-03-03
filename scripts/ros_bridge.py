@@ -42,7 +42,7 @@ class RosBridge:
         self.mir_exec_path = rospy.Publisher('mir_exec_path', Path, queue_size=10)
         self.target_pub = rospy.Publisher('target_markers', MarkerArray, queue_size=10)
         
-        self.slam_reset_pub = rospy.Publisher('/syscommand', String, latch=True)
+        self.slam_reset_pub = rospy.Publisher('/syscommand', String, latch=True, queue_size=1)
         
         if self.real_robot:
             rospy.Subscriber("odom", Odometry, self.callback_odometry, queue_size=1)
@@ -202,7 +202,7 @@ class RosBridge:
                     self.room_generator_params['agent_size'],
                     self.room_generator_params['wall_threshold']
                 )
-                
+                self.mir_pose = [pos_x, pos_y, ori_z]
                 self.mir_start_state = self._xyr_to_modelstate(pos_x, pos_y, ori_z)
             
             #### Must use map->odom_comb frame transform to get truethly occupancy grid map
@@ -295,7 +295,7 @@ class RosBridge:
         thresh = wall_threshold + agent_size/2
         freezone = room.get_freezone_poly().buffer(-thresh, cap_style=2, join_style=2)
         pos = trimesh.path.polygons.sample(freezone, 1)
-        ori_z = np.random.rand()*np.pi*2
+        ori_z = np.random.rand()*np.pi*2 - np.pi
         return pos[0,0], pos[0,1], ori_z
         
     def _xyr_to_modelstate(self, pos_x, pos_y, ori_z):
