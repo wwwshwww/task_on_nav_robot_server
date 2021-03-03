@@ -213,15 +213,13 @@ class RosBridge:
                     px, py, oz = self._modelstate_to_xyr(self.mir_start_state)
                     map_trueth = self.room_config.get_occupancy_grid(
                         freespace_poly=self.room_config.get_freespace_poly(),
-                        origin_pos=(0,0),
-                        origin_ori=0,
                         resolution=self.map_resolution,
                         map_size=int(self.map_size)
                     )
-                    map_trueth_2d = np.reshape(map_trueth, (int(self.map_size),int(self.map_size)))
-                    map_trueth_2d = np.flipud(map_trueth_2d)
-                    map_trueth_2d = np.fliplr(map_trueth_2d)
-                    self.map_data_trueth = map_trueth_2d.flatten()
+#                     map_trueth_2d = map_trueth.reshape((int(self.map_size),int(self.map_size))).T
+#                     map_trueth_2d = np.flipud(map_trueth_2d)
+#                     map_trueth_2d = np.fliplr(map_trueth_2d)
+#                     self.map_data_trueth = map_trueth_2d.flatten()
                     self.map_data_trueth = map_trueth
             
                 self.set_env_state(self.room_config, self.mir_start_state, spawn=is_change_room)
@@ -340,8 +338,6 @@ class RosBridge:
         else:
             pass
         
-        rospy.sleep(3)
-        
         rospy.wait_for_service('/move_base_node/clear_costmaps')
         try:
             clear_costmap_client = rospy.ServiceProxy('/move_base_node/clear_costmaps', Empty)
@@ -349,7 +345,7 @@ class RosBridge:
         except rospy.ServiceException as e:
             rospy.loginfo("Service call failed:" + e)
             
-        rospy.sleep(0.5)
+        rospy.sleep(2.5)
     
     def publish_target_markers(self, target_poses):
         marker_array = MarkerArray()
