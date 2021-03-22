@@ -14,10 +14,11 @@
   <arg name="robot_yaw" default="0.0" />
   
   <arg name="wait_moved" default="true" />
-  <arg name="map_size" default="256" />
+  <arg name="map_size" default="512" />
   <arg name="agent_size" default="0.5" />
   <arg name="wall_threshold" default="0.01" />
   
+  <rosparam param="slam_map_size" subst_value="True">$(arg map_size)</rosparam>
   <rosparam param="gazebo_uri" subst_value="True">$(arg gazebo_uri)</rosparam>
   <rosparam param="wait_moved" subst_value="True">$(arg wait_moved)</rosparam>
   <rosparam param="agent_size" subst_value="True">$(arg agent_size)</rosparam>

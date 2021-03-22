@@ -19,10 +19,15 @@ from threading import Event
 import copy
 import trimesh
 import numpy as np
+from skimage.measure import block_reduce
+from skimage.transform import resize
 
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 
 from roomor.generator import CubeRoomGenerator
+
+SLAM_MAP_SIZE = rospy.get_param("~slam_map_size")
+RESOLUTION_PARAM = 0.005
 
 class RosBridge:
     
@@ -54,6 +59,10 @@ class RosBridge:
         rospy.Subscriber("map", OccupancyGrid, self.callback_map, queue_size=1)
         
         self.mir_start_state = ModelState()
+        
+        # Map info
+        self.map_resolution = 0.0
+        self.map_origin = Pose()
         
         self.map_size = 256
         self.map_data = [0] * (self.map_size**2)
@@ -114,12 +123,6 @@ class RosBridge:
         self.mir_path = Path()
         self.mir_path.header.stamp = rospy.Time.now()
         self.mir_path.header.frame_id = self.path_frame
-
-        # Map info
-        self.map_resolution = 0.0
-        self.map_height_i = 0
-        self.map_width_j = 0
-        self.map_origin = Pose()
         
         self.rate = rospy.Rate(10) #30Hz
         self.reset.set()
@@ -422,10 +425,20 @@ class RosBridge:
     def callback_map(self, data):
         if self.get_state_event.isSet():
             info = data.info
-            self.map_data = copy.deepcopy(data.data)
-            self.map_resolution = info.resolution
-            self.map_height_i = info.height
-            self.map_width_j = info.width
+            dif = SLAM_MAP_SIZE // self.map_size
+            self.map_resolution = info.resolution * dif + RESOLUTION_PARAM
+            shape = (SLAM_MAP_SIZE, SLAM_MAP_SIZE)
+            if SLAM_MAP_SIZE == self.map_size:
+                self.map_data = np.array(data.data)
+            else:
+#                 self.map_data = np.array(data.data).reshape(shape)[::dif, ::dif].flatten()
+
+#                 tmp = np.array(data.data).reshape(shape)
+#                 tmp[tmp<0] = 50
+#                 self.map_data = resize(tmp, (self.map_size,self.map_size)).flatten()
+            
+                self.map_data = block_reduce(np.array(data.data).reshape(shape), (dif,dif), np.max).flatten()
+            
             self.map_origin = info.origin
         else:
             pass
