@@ -300,13 +300,11 @@ class RosBridge:
         poses = trimesh.path.polygons.sample(freezone, 500)
         pos = [0,0]
         for p in poses:
-            rospy.loginfo("\n\n{}".format(p))
             pp = np.full([len(obs),2], p)
             min_norm = np.min(np.linalg.norm(pp-obs, axis=1))
-            rospy.loginfo("\n\n{}".format(min_norm))
-            if min_norm > agent_size*2:
+            if min_norm > agent_size:
                 pos = p
-                rospy.loginfo("\n\n\n{}\n\n\n".format(p))
+                rospy.loginfo("\n generated: {}\n".format(p))
                 break
             
         ori_z = np.random.rand()*np.pi*2 - np.pi
@@ -350,6 +348,8 @@ class RosBridge:
             
     def reset_navigation(self, slam_method='hector'):
         if slam_method == 'hector':
+            self.slam_reset_pub.unregister()
+            self.slam_reset_pub = rospy.Publisher('/syscommand', String, latch=True, queue_size=1)
             self.slam_reset_pub.publish("reset")
         else:
             pass

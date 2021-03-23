@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <launch>
   <arg name="gui" default="false" />
-  <arg name="gazebo_gui" default="true" />
+  <arg name="gazebo_gui" default="false" />
   <arg name="world_path" default = "$(find task_on_nav_robot_server)/worlds" />
   <arg name="world_name" default="empty_world.world"/>
   <arg name="world" value ="$(arg world_path)/$(arg world_name)"/>
@@ -15,7 +15,7 @@
   
   <arg name="wait_moved" default="true" />
   <arg name="map_size" default="512" />
-  <arg name="agent_size" default="0.5" />
+  <arg name="agent_size" default="0.8" />
   <arg name="wall_threshold" default="0.01" />
   
   <rosparam param="gazebo_uri" subst_value="True">$(arg gazebo_uri)</rosparam>
