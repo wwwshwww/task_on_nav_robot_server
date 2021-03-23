@@ -237,6 +237,7 @@ class RosBridge:
         if len(self.targets) > 0:
             self.publish_target_markers(self.targets)
             
+        rospy.sleep(0.5)
         self.reset_navigation()
         self.reset.set()
         
