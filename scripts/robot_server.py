@@ -7,8 +7,12 @@ from ros_bridge import RosBridge
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2, robot_server_pb2_grpc
 
 class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
-    def __init__(self, real_robot, wait_moved):
-        self.rosbridge = RosBridge(real_robot=real_robot, wait_moved=wait_moved)
+    def __init__(self, real_robot, wait_moved, slam_map_size, agent_size, wall_threshold):
+        self.rosbridge = RosBridge(real_robot=real_robot, 
+                                   wait_moved=wait_moved,
+                                   slam_map_size=slam_map_size,
+                                   agent_size=agent_size,
+                                   wall_threshold=wall_threshold)
 
     def GetState(self, request, context):
         try:
@@ -33,10 +37,19 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
 def serve():
     server_port = rospy.get_param("~server_port")
     real_robot = rospy.get_param("~real_robot")
-    wait_moved = rospy.get_param("/wait_moved")
+    wait_moved = rospy.get_param("~wait_moved")
+    slam_map_size = rospy.get_param("~slam_map_size")
+    agent_size = rospy.get_param("~agent_size")
+    wall_threshold = rospy.get_param("~wall_threshold")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     robot_server_pb2_grpc.add_RobotServerServicer_to_server(
-        RobotServerServicer(real_robot=real_robot, wait_moved=wait_moved), server)
+        RobotServerServicer(
+            real_robot=real_robot, 
+            wait_moved=wait_moved,
+            slam_map_size=slam_map_size,
+            agent_size=agent_size,
+            wall_threshold=wall_threshold
+        ), server)
     server.add_insecure_port('[::]:'+repr(server_port))
     server.start()
     if real_robot:

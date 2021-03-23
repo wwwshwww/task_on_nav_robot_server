@@ -26,12 +26,11 @@ from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_p
 
 from roomor.generator import CubeRoomGenerator
 
-SLAM_MAP_SIZE = rospy.get_param("~slam_map_size")
-RESOLUTION_PARAM = 0.005
+PARAM_RESOLUTION = 0.005
 
 class RosBridge:
     
-    def __init__(self, real_robot=False, wait_moved=True):
+    def __init__(self, real_robot=False, wait_moved=True, slam_map_size=512, agent_size=0.5, wall_threshold=0.01):
         self.gazebo_proxy = self.get_gazebo_proxy()
         
         # Event is clear while initialization or set_state is going on
@@ -64,6 +63,7 @@ class RosBridge:
         self.map_resolution = 0.0
         self.map_origin = Pose()
         
+        self.slam_map_size = slam_map_size
         self.map_size = 256
         self.map_data = [0] * (self.map_size**2)
         self.map_data_trueth = [0] * (self.map_size**2)
@@ -90,9 +90,9 @@ class RosBridge:
         self.room_generator_params['room_wall_thickness'] = 0.05
         
         # parameter as not state
-        self.room_generator_params['agent_size'] = rospy.get_param("/agent_size") # default 0.35
+        self.room_generator_params['agent_size'] = agent_size # default 0.35
 #         self.room_generator_params['agent_size'] = 0.35
-        self.room_generator_params['wall_threshold'] = rospy.get_param("/wall_threshold") # default 0.01 
+        self.room_generator_params['wall_threshold'] = wall_threshold # default 0.01 
 #         self.room_generator_params['wall_threshold'] = 0.01
         
         # Room's infomation
@@ -294,10 +294,23 @@ class RosBridge:
     
     def gen_agent_state(self, room, agent_size, wall_threshold):
         thresh = wall_threshold + agent_size/2
+        obs = room.obstacle_pose['positions'][:,:2]
         freezone = room.get_freezone_poly().buffer(-thresh, cap_style=2, join_style=2)
-        pos = trimesh.path.polygons.sample(freezone, 1)
+        ## generate pose that have nothing possibility to touch any obstacle
+        poses = trimesh.path.polygons.sample(freezone, 500)
+        pos = [0,0]
+        for p in poses:
+            rospy.loginfo("\n\n{}".format(p))
+            pp = np.full([len(obs),2], p)
+            min_norm = np.min(np.linalg.norm(pp-obs, axis=1))
+            rospy.loginfo("\n\n{}".format(min_norm))
+            if min_norm > agent_size*2:
+                pos = p
+                rospy.loginfo("\n\n\n{}\n\n\n".format(p))
+                break
+            
         ori_z = np.random.rand()*np.pi*2 - np.pi
-        return pos[0,0], pos[0,1], ori_z
+        return pos[0], pos[1], ori_z
         
     def _xyr_to_modelstate(self, pos_x, pos_y, ori_z):
         start_state = ModelState()
@@ -425,10 +438,10 @@ class RosBridge:
     def callback_map(self, data):
         if self.get_state_event.isSet():
             info = data.info
-            dif = SLAM_MAP_SIZE // self.map_size
-            self.map_resolution = info.resolution * dif + RESOLUTION_PARAM
-            shape = (SLAM_MAP_SIZE, SLAM_MAP_SIZE)
-            if SLAM_MAP_SIZE == self.map_size:
+            dif = self.slam_map_size // self.map_size
+            self.map_resolution = info.resolution * dif + PARAM_RESOLUTION
+            shape = (self.slam_map_size, self.slam_map_size)
+            if self.slam_map_size == self.map_size:
                 self.map_data = np.array(data.data)
             else:
 #                 self.map_data = np.array(data.data).reshape(shape)[::dif, ::dif].flatten()
