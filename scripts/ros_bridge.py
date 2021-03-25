@@ -26,11 +26,11 @@ from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_p
 
 from roomor.generator import CubeRoomGenerator
 
-PARAM_RESOLUTION = 0.005
+PARAM_RESOLUTION = 0.05
 
 class RosBridge:
     
-    def __init__(self, real_robot=False, wait_moved=True, slam_map_size=512, agent_size=0.5, wall_threshold=0.01):
+    def __init__(self, real_robot=False, wait_moved=True, action_time=3, slam_map_size=512, agent_size=0.8, wall_threshold=0.01):
         self.gazebo_proxy = self.get_gazebo_proxy()
         
         # Event is clear while initialization or set_state is going on
@@ -41,6 +41,7 @@ class RosBridge:
         
         self.real_robot = real_robot
         self.wait_moved = wait_moved
+        self.action_time = action_time
         
         self.move_base_client = actionlib.SimpleActionClient('/move_base', MoveBaseAction)
         self.mir_exec_path = rospy.Publisher('mir_exec_path', Path, queue_size=10)
@@ -277,6 +278,7 @@ class RosBridge:
             else:
                 return self.move_base_client.get_result()
         else:
+            rospy.sleep(self.action_time)
             return self.move_base_client.get_state()
             
     def gen_simulation_room(self, new_generator=False):
@@ -294,7 +296,7 @@ class RosBridge:
         return room
     
     def gen_agent_state(self, room, agent_size, wall_threshold):
-        thresh = wall_threshold + agent_size/2
+        thresh = wall_threshold + agent_size
         obs = room.obstacle_pose['positions'][:,:2]
         freezone = room.get_freezone_poly().buffer(-thresh, cap_style=2, join_style=2)
         ## generate pose that have nothing possibility to touch any obstacle

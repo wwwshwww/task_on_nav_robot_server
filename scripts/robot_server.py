@@ -7,9 +7,10 @@ from ros_bridge import RosBridge
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2, robot_server_pb2_grpc
 
 class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
-    def __init__(self, real_robot, wait_moved, slam_map_size, agent_size, wall_threshold):
+    def __init__(self, real_robot, wait_moved, action_time, slam_map_size, agent_size, wall_threshold):
         self.rosbridge = RosBridge(real_robot=real_robot, 
                                    wait_moved=wait_moved,
+                                   action_time=action_time,
                                    slam_map_size=slam_map_size,
                                    agent_size=agent_size,
                                    wall_threshold=wall_threshold)
@@ -38,6 +39,7 @@ def serve():
     server_port = rospy.get_param("~server_port")
     real_robot = rospy.get_param("~real_robot")
     wait_moved = rospy.get_param("~wait_moved")
+    action_time = rospy.get_param("~action_time")
     slam_map_size = rospy.get_param("~slam_map_size")
     agent_size = rospy.get_param("~agent_size")
     wall_threshold = rospy.get_param("~wall_threshold")
@@ -46,6 +48,7 @@ def serve():
         RobotServerServicer(
             real_robot=real_robot, 
             wait_moved=wait_moved,
+            action_time=action_time,
             slam_map_size=slam_map_size,
             agent_size=agent_size,
             wall_threshold=wall_threshold

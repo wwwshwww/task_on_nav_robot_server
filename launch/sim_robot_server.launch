@@ -13,10 +13,11 @@
   <arg name="robot_y"   default="0.0" />
   <arg name="robot_yaw" default="0.0" />
   
-  <arg name="wait_moved" default="true" />
+  <arg name="action_time" default="3" />
+  <arg name="wait_moved" default="false" />
   <arg name="map_size" default="512" />
   <arg name="agent_size" default="0.8" />
-  <arg name="wall_threshold" default="0.01" />
+  <arg name="wall_threshold" default="0.02" />
   
   <rosparam param="gazebo_uri" subst_value="True">$(arg gazebo_uri)</rosparam>
 
@@ -50,6 +51,7 @@
     <param name="server_port" value="$(arg server_port)"></param>
     <param name="real_robot" value="false"></param>
     <param name="slam_map_size" value="$(arg map_size)"></param>
+    <param name="action_time" value="$(arg action_time)"></param>
     <param name="wait_moved" value="$(arg wait_moved)"></param>
     <param name="agent_size" value="$(arg agent_size)"></param>
     <param name="wall_threshold" value="$(arg wall_threshold)"></param>
