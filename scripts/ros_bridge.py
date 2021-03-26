@@ -269,8 +269,8 @@ class RosBridge:
             goal.target_pose.pose.orientation.z, \
             goal.target_pose.pose.orientation.w = ori.GetQuaternion()
         
-        self.move_base_client.send_goal(goal)
         if self.wait_moved:
+            self.move_base_client.send_goal(goal)
             wait = self.move_base_client.wait_for_result()
             if not wait:
                 rospy.logerr("Action server not available!")
@@ -278,7 +278,8 @@ class RosBridge:
             else:
                 return self.move_base_client.get_result()
         else:
-            rospy.sleep(self.action_time)
+            self.move_base_client.send_goal_and_wait(goal, execute_timeout=rospy.Duration(self.action_time))
+            
             return self.move_base_client.get_state()
             
     def gen_simulation_room(self, new_generator=False):
