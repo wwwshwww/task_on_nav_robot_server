@@ -19,6 +19,7 @@ from threading import Event
 import copy
 import trimesh
 import numpy as np
+import time
 from skimage.measure import block_reduce
 from skimage.transform import resize
 
@@ -42,12 +43,16 @@ class RosBridge:
         self.real_robot = real_robot
         self.wait_moved = wait_moved
         self.action_time = action_time
+
+        self.goal = MoveBaseGoal()
         
         self.move_base_client = actionlib.SimpleActionClient('/move_base', MoveBaseAction)
-        self.mir_exec_path = rospy.Publisher('mir_exec_path', Path, queue_size=10)
-        self.target_pub = rospy.Publisher('target_markers', MarkerArray, queue_size=10)
+        self.set_model_state_client = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+        self.clear_costmap_client = rospy.ServiceProxy('/move_base_node/clear_costmaps', Empty)
+        self.mir_exec_path = rospy.Publisher('mir_exec_path', Path)
+        self.target_pub = rospy.Publisher('target_markers', MarkerArray, queue_size=1)
         
-        self.slam_reset_pub = rospy.Publisher('/syscommand', String, latch=True, queue_size=1)
+#         self.slam_reset_pub = rospy.Publisher('/syscommand', String, latch=True, queue_size=1)
         
         if self.real_robot:
             rospy.Subscriber("odom", Odometry, self.callback_odometry, queue_size=1)
@@ -214,7 +219,7 @@ class RosBridge:
             import sys
             try:
                 if is_change_room or is_change_robot:
-                    px, py, oz = self._modelstate_to_xyr(self.mir_start_state)
+#                     px, py, oz = self._modelstate_to_xyr(self.mir_start_state)
                     map_trueth = self.room_config.get_occupancy_grid(
                         freespace_poly=self.room_config.get_freespace_poly(),
                         resolution=self.map_resolution,
@@ -229,16 +234,18 @@ class RosBridge:
                 self.set_env_state(self.room_config, self.mir_start_state, spawn=is_change_room)
 
             except Exception as e:
-                rospy.loginfo("\n\n{}:{}\n\n".format(type(e),sys.exc_info()))
+                rospy.loginfo("\n\nset_state:\n{}:{}\n\n".format(type(e),sys.exc_info()))
             
         else:
             target_space = state[ignore_index+2+len(self.rgp_tags):]
             self.targets = np.reshape(target_space, (len(target_space)//3, 3))
             
-        if len(self.targets) > 0:
-            self.publish_target_markers(self.targets)
-            
-        rospy.sleep(0.5)
+#         if len(self.targets) > 0:
+#             self.publish_target_markers(self.targets) 
+        
+        rospy.loginfo("\n\nbefore sleep\n\n")
+        
+        rospy.Duration(0.5)
         self.reset_navigation()
         self.reset.set()
         
@@ -251,14 +258,29 @@ class RosBridge:
             spawn_config['orientations'][:,2]
         ]).T
     
+    def reset_action_topicer(self, simple_client, ns, spec):
+        simple_client.action_client.pub_goal.unregister()
+        simple_client.action_client.pub_cancel.unregister()
+        simple_client.action_client.status_sub.unregister()
+        simple_client.action_client.result_sub.unregister()
+        simple_client.action_client.feedback_sub.unregister()
+        
+        del simple_client
+        return actionlib.SimpleActionClient(ns, spec)
+    
     def call_move_base(self, pos_x, pos_y, ori_z):
         import sys
+        rospy.loginfo("\n\ncall_move_base\n\n")
         try:
+#             del self.move_base_client
+#             self.move_base_client = actionlib.ActionClient('/move_base', MoveBaseAction)
+
+            self.move_base_client = self.reset_action_topicer(self.move_base_client, 'move_base', MoveBaseAction)
             self.move_base_client.wait_for_server()
         except:
-            rospy.loginfo("\n\n{}\n\n".format(sys.exc_info()))
+            rospy.loginfo("\n\nOccur error when call_move_base:\n{}\n\n".format(sys.exc_info()))
             
-        goal = MoveBaseGoal()
+        goal = self.goal
         goal.target_pose.header.frame_id = "map"
         goal.target_pose.header.stamp = rospy.Time.now()
         goal.target_pose.pose.position.x = pos_x
@@ -268,6 +290,8 @@ class RosBridge:
             goal.target_pose.pose.orientation.y, \
             goal.target_pose.pose.orientation.z, \
             goal.target_pose.pose.orientation.w = ori.GetQuaternion()
+        
+        rospy.loginfo("\n calling move_base \n:{}\n".format(goal))
         
         if self.wait_moved:
             self.move_base_client.send_goal(goal)
@@ -345,27 +369,28 @@ class RosBridge:
         
         rospy.wait_for_service('/gazebo/set_model_state')
         try:
-            set_model_state_client = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
-            set_model_state_client(agent_state)
+            self.set_model_state_client(agent_state)
         except rospy.ServiceException as e:
             print("Service call failed:" + e)
             
     def reset_navigation(self, slam_method='hector'):
+        rospy.loginfo("\n\n before reset_navigation! \n\n")   
         if slam_method == 'hector':
-            self.slam_reset_pub.unregister()
-            self.slam_reset_pub = rospy.Publisher('/syscommand', String, latch=True, queue_size=1)
-            self.slam_reset_pub.publish("reset")
+            slam_reset_pub = rospy.Publisher('/syscommand', String, latch=True, queue_size=1)
+            slam_reset_pub.publish("reset")
+            rospy.sleep(1.5)
         else:
             pass
         
         rospy.wait_for_service('/move_base_node/clear_costmaps')
         try:
-            clear_costmap_client = rospy.ServiceProxy('/move_base_node/clear_costmaps', Empty)
-            res = clear_costmap_client()
+            res = self.clear_costmap_client()
         except rospy.ServiceException as e:
             rospy.loginfo("Service call failed:" + e)
             
-        rospy.sleep(2.5)
+        slam_reset_pub.unregister()
+        rospy.sleep(1.5)
+        rospy.loginfo("resetted navigation.")
     
     def publish_target_markers(self, target_poses):
         marker_array = MarkerArray()
