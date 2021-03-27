@@ -243,8 +243,6 @@ class RosBridge:
 #         if len(self.targets) > 0:
 #             self.publish_target_markers(self.targets) 
         
-        rospy.loginfo("\n\nbefore sleep\n\n")
-        
         rospy.Duration(0.5)
         self.reset_navigation()
         self.reset.set()
@@ -259,14 +257,20 @@ class RosBridge:
         ]).T
     
     def reset_action_topicer(self, simple_client, ns, spec):
-        simple_client.action_client.pub_goal.unregister()
-        simple_client.action_client.pub_cancel.unregister()
-        simple_client.action_client.status_sub.unregister()
-        simple_client.action_client.result_sub.unregister()
-        simple_client.action_client.feedback_sub.unregister()
+        pg = simple_client.action_client.pub_goal.get_num_connections() < 1
+        pc = simple_client.action_client.pub_cancel.get_num_connections() < 1
+        if pg or pc:
+            simple_client.action_client.pub_goal.unregister()
+            simple_client.action_client.pub_cancel.unregister()
+            simple_client.action_client.status_sub.unregister()
+            simple_client.action_client.result_sub.unregister()
+            simple_client.action_client.feedback_sub.unregister()
         
-        del simple_client
-        return actionlib.SimpleActionClient(ns, spec)
+            del simple_client
+            rospy.loginfo("\n\n Restored action client.")
+            return actionlib.SimpleActionClient(ns, spec)
+        else:
+            return simple_client
     
     def call_move_base(self, pos_x, pos_y, ori_z):
         import sys
@@ -374,7 +378,6 @@ class RosBridge:
             print("Service call failed:" + e)
             
     def reset_navigation(self, slam_method='hector'):
-        rospy.loginfo("\n\n before reset_navigation! \n\n")   
         if slam_method == 'hector':
             slam_reset_pub = rospy.Publisher('/syscommand', String, latch=True, queue_size=1)
             slam_reset_pub.publish("reset")
