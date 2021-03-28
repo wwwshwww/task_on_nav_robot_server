@@ -48,6 +48,8 @@ class RosBridge:
         
         self.move_base_client = actionlib.SimpleActionClient('/move_base', MoveBaseAction)
         self.set_model_state_client = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+        self.pause_physics_client = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
+        self.unpause_physics_client = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
         self.clear_costmap_client = rospy.ServiceProxy('/move_base_node/clear_costmaps', Empty)
         self.mir_exec_path = rospy.Publisher('mir_exec_path', Path)
         self.target_pub = rospy.Publisher('target_markers', MarkerArray, queue_size=1)
@@ -368,14 +370,21 @@ class RosBridge:
     
     def set_env_state(self, room, agent_state, spawn=True):
         # Spawn models to Gazebo world and sleep until it done
+        rospy.wait_for_service('/gazebo/pause_physics')
+        rospy.wait_for_service('/gazebo/unpause_physics')
+        rospy.wait_for_service('/gazebo/set_model_state')
+        
+        self.pause_physics_client()
+        
         if spawn:
             room.spawn_all()
-        
-        rospy.wait_for_service('/gazebo/set_model_state')
+
         try:
             self.set_model_state_client(agent_state)
         except rospy.ServiceException as e:
             print("Service call failed:" + e)
+            
+        self.unpause_physics_client()
             
     def reset_navigation(self, slam_method='hector'):
         if slam_method == 'hector':
@@ -417,7 +426,7 @@ class RosBridge:
             m.pose.orientation.w = q_orientation[3]
             m.id = i
             m.header.stamp = rospy.Time.now()
-            m.header.frame_id = self.path_frame
+            m.header.frame_id = 'map'
             m.color.a = 1.0
             m.color.r = 0.0
             m.color.g = 1.0
