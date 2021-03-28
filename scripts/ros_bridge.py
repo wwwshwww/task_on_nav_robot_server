@@ -243,7 +243,7 @@ class RosBridge:
 #         if len(self.targets) > 0:
 #             self.publish_target_markers(self.targets) 
         
-        rospy.Duration(0.5)
+        rospy.sleep(0.5)
         self.reset_navigation()
         self.reset.set()
         
@@ -329,7 +329,7 @@ class RosBridge:
         obs = room.obstacle_pose['positions'][:,:2]
         freezone = room.get_freezone_poly().buffer(-thresh, cap_style=2, join_style=2)
         ## generate pose that have nothing possibility to touch any obstacle
-        poses = trimesh.path.polygons.sample(freezone, 500)
+        poses = trimesh.path.polygons.sample(freezone, 200)
         pos = [0,0]
         for p in poses:
             pp = np.full([len(obs),2], p)
@@ -392,7 +392,7 @@ class RosBridge:
             rospy.loginfo("Service call failed:" + e)
             
         slam_reset_pub.unregister()
-        rospy.sleep(1.5)
+        rospy.sleep(1.0)
         rospy.loginfo("resetted navigation.")
     
     def publish_target_markers(self, target_poses):
