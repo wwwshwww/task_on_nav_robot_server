@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <launch>
-  <env name="DISPLAY" value="$(env DISPLAY)" />
+  <env name="DISPLAY" value="$(optenv DISPLAY :0)" />
   
   <arg name="gui" default="false" />
   <arg name="gazebo_gui" default="$(optenv ENABLE_GAZEBO_GUI false)" />
