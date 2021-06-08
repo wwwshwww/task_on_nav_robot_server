@@ -17,7 +17,13 @@ catkin build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebugInfo
 source devel/setup.bash
 ```
 
-And then, remove `rospy.init_node()` at `/usr/local/lib/python2.7/dist-packages/pcg_gazebo/task_manager/gazebo_proxy.py`.
+And then, remove `rospy.init_node()` at `/usr/local/lib/python2.7/dist-packages/pcg_gazebo/task_manager/gazebo_proxy.py` by using command such as below.
+
+`sed -i -e '/^.*init_node.*/d' /usr/local/lib/python2.7/dist-packages/pcg_gazebo/task_manager/gazebo_proxy.py`
+
+### Docker
+
+`moyash/robo-gym-rs:cuberoom`
 
 ### Environment Side
 
