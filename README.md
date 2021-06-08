@@ -5,7 +5,7 @@
 Reference:
 
 - https://github.com/jr-robotics/robo-gym
-- https://github.com/jr-robotics/robo-gym-robot-servers/blob/master/melodic-install.sh
+- https://github.com/jr-robotics/robo-gym-robot-servers
 
 ```
 pip install --upgrade pip && pip install numpy-quaternion==2019.12.11.22.25.52 pcg_gazebo==0.7.12 roomor
