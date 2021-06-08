@@ -1,0 +1,8 @@
+services:
+    robo-gym-robot-server-side:
+      build: .
+      environment:
+        DISPLAY: :0
+        ENABLE_GAZEBO_GUI: false
+      ports:
+        - 50100-50200
