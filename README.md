@@ -7,7 +7,7 @@ Reference:
 - https://github.com/jr-robotics/robo-gym
 - https://github.com/jr-robotics/robo-gym-robot-servers
 
-```
+```bash
 pip install --upgrade pip && pip install numpy-quaternion==2019.12.11.22.25.52 pcg_gazebo==0.7.12 roomor
 cd ~/robogym_ws/src/robo-gym-robot-servers
 git clone https://github.com/wwwshwww/task_on_nav_robot_server.git
@@ -19,11 +19,21 @@ source devel/setup.bash
 
 And then, remove `rospy.init_node()` at `/usr/local/lib/python2.7/dist-packages/pcg_gazebo/task_manager/gazebo_proxy.py` by using command such as below.
 
-`sed -i -e '/^.*init_node.*/d' /usr/local/lib/python2.7/dist-packages/pcg_gazebo/task_manager/gazebo_proxy.py`
+```bash
+sed -i -e '/^.*init_node.*/d' /usr/local/lib/python2.7/dist-packages/pcg_gazebo/task_manager/gazebo_proxy.py
+```
 
 ### Docker
 
-`moyash/robo-gym-rs:cuberoom`
+This env of Robot-Server-Side can use from docker image below. That version using port for GRPC is fixed to 54321.
+
+docker image: `moyash/robo-gym-rs:cuberoom`
+
+Usage:
+
+```bash
+docker run --rm --name robot-server-side --expose 54321 moyash/robo-gym-rs:cuberoom
+```
 
 ### Environment Side
 
