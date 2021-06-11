@@ -1,5 +1,11 @@
 # `task_on_nav` Robot-Server-Side
 
+<img src='http://drive.google.com/uc?export=view&id=1X7nUh9TZ7J2qQBCnxsvelqz5fS3D2IPR' width=80% center>
+
+<img src='http://drive.google.com/uc?export=view&id=1S2LvSdFfj9dmrkPv8e0YZRKaWa-AIJK7' width=80%>
+
+<img src='http://drive.google.com/uc?export=view&id=1dGHVnu6JXPqjYnh92ZxUueYqzY1SFWKN' width=80%>
+
 ## Installation
 
 Reference:
