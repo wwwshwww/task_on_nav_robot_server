@@ -1,4 +1,6 @@
-# `task_on_nav` Robot-Server-Side
+# Task seeking target in random cube room
+
+The robot-server-side of robo-gym framework 
 
 <img src='http://drive.google.com/uc?export=view&id=1X7nUh9TZ7J2qQBCnxsvelqz5fS3D2IPR' width=80% center>
 
