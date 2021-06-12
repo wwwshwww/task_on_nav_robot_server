@@ -3,6 +3,6 @@ services:
       build: .
       environment:
         DISPLAY: :0
-        ENABLE_GAZEBO_GUI: false
       ports:
-        - 50100-50200
+        - "54321"
+      command: bash -c "start-server-manager && tail -f /dev/null"

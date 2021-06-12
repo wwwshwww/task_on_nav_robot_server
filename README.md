@@ -41,6 +41,30 @@ Usage:
 docker run --rm --name robot-server-side --expose 54321 moyash/robo-gym-rs:cuberoom
 ```
 
+## Details
+
+### robot server state:
+
+- map size: [1, ]
+- actual data of Occupancy Grid: [*map_size***2, ]
+- trueth data of Occupancy Grid: [*map_size***2, ]
+- 2D pose of agent on the `world` frame (pos x, pos y, ori z): [3, ]
+- agent twist (linear x, angular z): [2, ]
+- flag of agent collision: [1, ]
+- flag of to generate new room when resetting env: [1, ]
+- flag of to generate new agent pose when resetting env: [1, ]
+- parameters of room generator: [8, ]
+- 2D poses of target on the `world` frame (pos x, pos y, ori z): [*n*\*3, ]
+
+Parameters of room generator is used for generating new room by `CubeRoomGenerator`.
+Details: https://github.com/wwwshwww/roomor
+
+### robot server action
+
+- Pose that let Agent to try to reach on the `map` frame (pos x, pos y, ori z): [3, ]
+
+Robot is controlled by move_base from Navigation Stack.
+
 ### Environment Side
 
 https://github.com/wwwshwww/task_on_nav_env
