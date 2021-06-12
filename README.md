@@ -58,7 +58,7 @@ docker run --rm --name robot-server-side --expose 54321 moyash/robo-gym-rs:cuber
 - parameters of room generator: [8, ]
 - 2D poses of target on the `world` frame (pos x, pos y, ori z): [*n*\*3, ]
 
-Parameters of room generator is used for generating new room by `CubeRoomGenerator`. \\
+Parameters of room generator is used for generating new room by `CubeRoomGenerator`.  
 Details: https://github.com/wwwshwww/roomor
 
 ### robot server action
