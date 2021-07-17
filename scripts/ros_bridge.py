@@ -213,7 +213,6 @@ class RosBridge:
                     self.room_generator_params['agent_size'],
                     self.room_generator_params['wall_threshold']
                 )
-                self.mir_pose = [pos_x, pos_y, ori_z]
                 self.mir_start_state = self._xyr_to_modelstate(pos_x, pos_y, ori_z)
             
             #### Must use map->odom_comb frame transform to get truethly occupancy grid map
@@ -233,6 +232,7 @@ class RosBridge:
 #                     self.map_data_trueth = map_trueth_2d.flatten()
                     self.map_data_trueth = map_trueth
             
+                self.mir_pose = self._modelstate_to_xyr(self.mir_start_state)
                 self.set_env_state(self.room_config, self.mir_start_state, spawn=is_change_room)
 
             except Exception as e:
