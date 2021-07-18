@@ -309,7 +309,6 @@ class RosBridge:
                 return self.move_base_client.get_result()
         else:
             self.move_base_client.send_goal_and_wait(goal, execute_timeout=rospy.Duration(self.action_time))
-            rospy.sleep(0.7)
             return self.move_base_client.get_state()
             
     def gen_simulation_room(self, new_generator=False):
