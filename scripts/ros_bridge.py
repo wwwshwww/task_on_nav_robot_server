@@ -245,7 +245,7 @@ class RosBridge:
 #         if len(self.targets) > 0:
 #             self.publish_target_markers(self.targets) 
         
-        rospy.sleep(0.5)
+        time.sleep(0.5)
         self.reset_navigation()
         self.reset.set()
         
@@ -306,9 +306,11 @@ class RosBridge:
                 rospy.logerr("Action server not available!")
                 rospy.signal_shutdown("Action server not available!")
             else:
+                time.sleep(0.5)
                 return self.move_base_client.get_result()
         else:
             self.move_base_client.send_goal_and_wait(goal, execute_timeout=rospy.Duration(self.action_time))
+            time.sleep(0.5)
             return self.move_base_client.get_state()
             
     def gen_simulation_room(self, new_generator=False):
@@ -389,7 +391,7 @@ class RosBridge:
         if slam_method == 'hector':
             slam_reset_pub = rospy.Publisher('/syscommand', String, latch=True, queue_size=1)
             slam_reset_pub.publish("reset")
-            rospy.sleep(1.5)
+            time.sleep(1.0)
         else:
             pass
         
@@ -400,7 +402,7 @@ class RosBridge:
             rospy.loginfo("Service call failed:" + e)
             
         slam_reset_pub.unregister()
-        rospy.sleep(1.0)
+        time.sleep(1.0)
         rospy.loginfo("resetted navigation.")
     
     def publish_target_markers(self, target_poses):
