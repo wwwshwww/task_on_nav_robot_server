@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from typing_extensions import ParamSpec
 import rospy
 import actionlib
 import PyKDL
