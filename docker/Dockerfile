@@ -2,7 +2,7 @@ FROM moyash/robo-gym-rs:base
 
 ENV DEBIAN_FRONTEND=noninteractive ROS_DISTRO=melodic ROBOGYM_WS=/robogym_ws MY_PKG=task_on_nav_robot_server
 
-ADD ./* $ROBOGYM_WS/src/robo-gym-robot-servers/$MY_PKG/
+ADD ../* $ROBOGYM_WS/src/robo-gym-robot-servers/$MY_PKG/
 
 RUN cd $ROBOGYM_WS && apt update && \
     rosdep update && rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO && \
