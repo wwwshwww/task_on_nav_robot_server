@@ -29,7 +29,7 @@ jobs:
           docker-compose build robo-gym-robot-server
           docker-compose up -d
       - name: Test env
-        run: docker exec robo-gym-environment-jupyter bash -c 'cd ${{ env.PJ_NAME_ENV_SIDE }} && pip install -U pip && pip install pytest && pytest'
+        run: docker-compose exec -T robo-gym-environment-jupyter bash -c 'cd ${{ env.PJ_NAME_ENV_SIDE }} && pip install -U pip && pip install pytest && pytest'
       - name: Slack Notification
         uses: homoluctus/slatify@master
         if: always()
