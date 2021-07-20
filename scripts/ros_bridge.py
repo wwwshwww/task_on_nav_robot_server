@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from typing_extensions import ParamSpec
 import rospy
 import actionlib
 import PyKDL
@@ -47,10 +48,10 @@ class RosBridge:
         self.goal = MoveBaseGoal()
         
         self.move_base_client = actionlib.SimpleActionClient('/move_base', MoveBaseAction)
-        self.set_model_state_client = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
-        self.pause_physics_client = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
-        self.unpause_physics_client = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
-        self.clear_costmap_client = rospy.ServiceProxy('/move_base_node/clear_costmaps', Empty)
+        self.set_model_state_client = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState, persistent=True)
+        self.pause_physics_client = rospy.ServiceProxy('/gazebo/pause_physics', Empty, persistent=True)
+        self.unpause_physics_client = rospy.ServiceProxy('/gazebo/unpause_physics', Empty, persistent=True)
+        self.clear_costmap_client = rospy.ServiceProxy('/move_base_node/clear_costmaps', Empty, persistent=True)
         self.mir_exec_path = rospy.Publisher('mir_exec_path', Path)
         self.target_pub = rospy.Publisher('target_markers', MarkerArray, queue_size=1)
         

@@ -1,0 +1,42 @@
+name: Test CI
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+    branches:
+      - master
+  pull_request:
+    branches: 
+      - master
+
+env:
+  PJ_ACTOR: wwwshwww
+  PJ_REPO: ${{ github.repository }}
+  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps: 
+      - name: Clone ${{ env.PJ_REPO }}
+        uses: actions/checkout@v1
+      - name: Setup docker
+        run: |
+          cd ${GITHUB_WORKSPACE}/${{ env.PJ_REPO }}/docker
+          docker-compose build robo-gym-robot-server
+          docker-compose up -d
+      - name: Test env
+        run: docker-compose exec -T robo-gym-environment-jupyter bash -c 'cd ~/task_nav_on_env && pytest'
+      - name: Slack Notification
+        uses: homoluctus/slatify@master
+        if: always()
+        with:
+          type: ${{ job.status }}
+          job_name: '*[${{ env.PJ_REPO }}] Unit Test*'
+          mention: 'here'
+          mention_if: 'failure'
+          channel: 'dev-rl-env'
+          icon_emoji: ''
+        env: 
+          SLACK_WEBHOOK: ${{ env.SLACK_WEBHOOK }}
