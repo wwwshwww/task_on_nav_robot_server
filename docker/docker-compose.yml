@@ -1,8 +1,0 @@
-services:
-    robo-gym-robot-server-side:
-      build: .
-      environment:
-        DISPLAY: :0
-      ports:
-        - "54321"
-      command: bash -c "start-server-manager && tail -f /dev/null"

@@ -19,7 +19,7 @@ from threading import Event
 import copy
 import trimesh
 import numpy as np
-import time
+import time, sys
 from skimage.measure import block_reduce
 from skimage.transform import resize
 
@@ -47,10 +47,10 @@ class RosBridge:
         self.goal = MoveBaseGoal()
         
         self.move_base_client = actionlib.SimpleActionClient('/move_base', MoveBaseAction)
-        self.set_model_state_client = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
-        self.pause_physics_client = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
-        self.unpause_physics_client = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
-        self.clear_costmap_client = rospy.ServiceProxy('/move_base_node/clear_costmaps', Empty)
+        self.set_model_state_client = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState, persistent=True)
+        self.pause_physics_client = rospy.ServiceProxy('/gazebo/pause_physics', Empty, persistent=True)
+        self.unpause_physics_client = rospy.ServiceProxy('/gazebo/unpause_physics', Empty, persistent=True)
+        self.clear_costmap_client = rospy.ServiceProxy('/move_base_node/clear_costmaps', Empty, persistent=True)
         self.mir_exec_path = rospy.Publisher('mir_exec_path', Path)
         self.target_pub = rospy.Publisher('target_markers', MarkerArray, queue_size=1)
         
@@ -217,7 +217,6 @@ class RosBridge:
             
             #### Must use map->odom_comb frame transform to get truethly occupancy grid map
             
-            import sys
             try:
                 if is_change_room or is_change_robot:
 #                     px, py, oz = self._modelstate_to_xyr(self.mir_start_state)
@@ -275,8 +274,7 @@ class RosBridge:
             return simple_client
     
     def call_move_base(self, pos_x, pos_y, ori_z):
-        import sys
-        rospy.loginfo("\n\ncall_move_base\n\n")
+        # rospy.loginfo("\n\ncall_move_base\n\n")
         try:
 #             del self.move_base_client
 #             self.move_base_client = actionlib.ActionClient('/move_base', MoveBaseAction)
@@ -297,7 +295,7 @@ class RosBridge:
             goal.target_pose.pose.orientation.z, \
             goal.target_pose.pose.orientation.w = ori.GetQuaternion()
         
-        rospy.loginfo("\n calling move_base \n:{}\n".format(goal))
+        # rospy.loginfo("\n calling move_base \n:{}\n".format(goal))
         
         if self.wait_moved:
             self.move_base_client.send_goal(goal)
@@ -403,7 +401,7 @@ class RosBridge:
             
         slam_reset_pub.unregister()
         time.sleep(1.0)
-        rospy.loginfo("resetted navigation.")
+        # rospy.loginfo("resetted navigation.")
     
     def publish_target_markers(self, target_poses):
         marker_array = MarkerArray()

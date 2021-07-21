@@ -1,0 +1,28 @@
+version: "3.9"
+services:
+  robo-gym-environment-jupyter:
+    image: moyash/robo-gym-env-jupyter:cuberoom
+    container_name: environment
+    networks: 
+      - robogym-network
+    ports:
+      - "6060:8888"
+    user: root
+    command: jupyter lab --allow-root --LabApp.token='' --ip='0.0.0.0' --no-browser
+  robo-gym-robot-server:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    # image: moyash/robo-gym-rs:cuberoom
+    container_name: robot-server
+    networks: 
+      - robogym-network
+    ports:
+      - "54321:54321"
+    # environment:
+    #   - DISPLAY=192.168.1.7:0
+    command: bash -c "source /robogym_ws/devel/setup.bash && start-server-manager && tail -f /dev/null"
+        
+networks: 
+  robogym-network:
+    driver: bridge
