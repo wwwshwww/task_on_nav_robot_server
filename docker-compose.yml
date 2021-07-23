@@ -17,8 +17,6 @@ services:
     container_name: robot-server
     networks: 
       - robogym-network
-    ports:
-      - "54321:54321"
     # environment:
     #   - DISPLAY=192.168.1.7:0
     command: bash -c "source /robogym_ws/devel/setup.bash && start-server-manager && tail -f /dev/null"

@@ -13,7 +13,7 @@ from visualization_msgs.msg import MarkerArray, Marker
 from gazebo_msgs.srv import GetModelState, SetModelState
 from gazebo_msgs.msg import ModelState, ContactsState
 from std_msgs.msg import String
-from std_srvs.srv import Empty
+from std_srvs.srv import Empty, Trigger
 
 from threading import Event
 import copy
@@ -51,6 +51,7 @@ class RosBridge:
         self.pause_physics_client = rospy.ServiceProxy('/gazebo/pause_physics', Empty, persistent=True)
         self.unpause_physics_client = rospy.ServiceProxy('/gazebo/unpause_physics', Empty, persistent=True)
         self.clear_costmap_client = rospy.ServiceProxy('/move_base_node/clear_costmaps', Empty, persistent=True)
+        self.reset_map_client = rospy.ServiceProxy('reset_map', Trigger, persistent=True)
         self.mir_exec_path = rospy.Publisher('mir_exec_path', Path)
         self.target_pub = rospy.Publisher('target_markers', MarkerArray, queue_size=1)
         
@@ -387,19 +388,19 @@ class RosBridge:
             
     def reset_navigation(self, slam_method='hector'):
         if slam_method == 'hector':
-            slam_reset_pub = rospy.Publisher('/syscommand', String, latch=True, queue_size=1)
-            slam_reset_pub.publish("reset")
-            time.sleep(1.0)
+            rospy.wait_for_service('/reset_map')
+            res = self.reset_map_client()
         else:
             pass
         
+        time.sleep(0.5)
+
         rospy.wait_for_service('/move_base_node/clear_costmaps')
         try:
             res = self.clear_costmap_client()
         except rospy.ServiceException as e:
             rospy.loginfo("Service call failed:" + e)
-            
-        slam_reset_pub.unregister()
+        
         time.sleep(1.0)
         # rospy.loginfo("resetted navigation.")
     
