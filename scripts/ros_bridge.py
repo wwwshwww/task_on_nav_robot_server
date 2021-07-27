@@ -52,7 +52,6 @@ class RosBridge:
         self.unpause_physics_client = rospy.ServiceProxy('/gazebo/unpause_physics', Empty, persistent=True)
         self.clear_costmap_client = rospy.ServiceProxy('/move_base_node/clear_costmaps', Empty, persistent=True)
         self.reset_map_client = rospy.ServiceProxy('reset_map', Trigger, persistent=True)
-        self.pause_mapping_client = rospy.ServiceProxy('pause_mapping', SetBool, persistent=True)
         self.mir_exec_path = rospy.Publisher('mir_exec_path', Path)
         self.target_pub = rospy.Publisher('target_markers', MarkerArray, queue_size=1)
         
