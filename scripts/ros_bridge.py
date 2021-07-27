@@ -52,6 +52,7 @@ class RosBridge:
         self.unpause_physics_client = rospy.ServiceProxy('/gazebo/unpause_physics', Empty, persistent=True)
         self.clear_costmap_client = rospy.ServiceProxy('/move_base_node/clear_costmaps', Empty, persistent=True)
         self.reset_map_client = rospy.ServiceProxy('reset_map', Trigger, persistent=True)
+        self.pause_mapping_client = rospy.ServiceProxy('pause_mapping', SetBool, persistent=True)
         self.mir_exec_path = rospy.Publisher('mir_exec_path', Path)
         self.target_pub = rospy.Publisher('target_markers', MarkerArray, queue_size=1)
         
@@ -309,7 +310,7 @@ class RosBridge:
                 return self.move_base_client.get_result()
         else:
             self.move_base_client.send_goal_and_wait(goal, execute_timeout=rospy.Duration(self.action_time))
-            time.sleep(0.5)
+            time.sleep(0.8)
             return self.move_base_client.get_state()
             
     def gen_simulation_room(self, new_generator=False):
@@ -389,11 +390,10 @@ class RosBridge:
     def reset_navigation(self, slam_method='hector'):
         if slam_method == 'hector':
             rospy.wait_for_service('/reset_map')
-            res = self.reset_map_client()
+            self.reset_map_client()
+            time.sleep(1.5)
         else:
             pass
-        
-        time.sleep(0.5)
 
         rospy.wait_for_service('/move_base_node/clear_costmaps')
         try:
@@ -401,7 +401,7 @@ class RosBridge:
         except rospy.ServiceException as e:
             rospy.loginfo("Service call failed:" + e)
         
-        time.sleep(1.0)
+        time.sleep(1.5)
         # rospy.loginfo("resetted navigation.")
     
     def publish_target_markers(self, target_poses):
