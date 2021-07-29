@@ -488,9 +488,8 @@ class RosBridge:
 
                 tmp = np.array(data.data).reshape(shape)
 #                 self.map_data = resize(tmp, (self.map_size,self.map_size), anti_aliasing=False).flatten()
-                self.map_data = block_reduce(tmp, (dif,dif), np.mean).flatten()
-            
-#                 self.map_data = block_reduce(np.array(data.data).reshape(shape), (dif,dif), np.max).flatten()
+#                 self.map_data = block_reduce(tmp, (dif,dif), np.mean).flatten()
+                self.map_data = block_reduce(tmp, (dif,dif), np.max).flatten()
             
             self.map_origin = info.origin
         else:
