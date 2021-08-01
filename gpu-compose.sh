@@ -1,0 +1,3 @@
+docker network create robogym-network
+docker run -d --gpus all --name robot-server --network=robogym-network moyash/robo-gym-rs:cuberoom bash -c "source /robogym_ws/devel/setup.bash && start-server-manager && tail -f /dev/null"
+docker run -d --gpus all --user=root --network=robogym-network -p 8888:8888 -p 6006:6006 moyash/robo-gym-env-jupyter:cuberoom jupyter lab --allow-root --LabApp.token='' --ip='0.0.0.0'

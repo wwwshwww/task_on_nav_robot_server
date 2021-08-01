@@ -7,12 +7,12 @@ from gazebo_msgs.srv import GetModelState
 def mir_pose_publisher():
     rospy.init_node('mir_pose_pub')
     pub = rospy.Publisher('robot_pose', Pose, queue_size=10)
-    r = rospy.Rate(10.0)
+    r = rospy.Rate(15.0)
     rospy.wait_for_service('/gazebo/get_model_state')
     rospy.wait_for_service('/gazebo/spawn_urdf_model')
+    model_state = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState, persistent=True)
     while not rospy.is_shutdown():
         try:
-            model_state = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
             model_coordinates = model_state('mir', '')
             pose = Pose()
             pose.position.x = model_coordinates.pose.position.x

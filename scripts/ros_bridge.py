@@ -43,6 +43,7 @@ class RosBridge:
         self.real_robot = real_robot
         self.wait_moved = wait_moved
         self.action_time = action_time
+        self.slam_map_size = slam_map_size
 
         self.goal = MoveBaseGoal()
         
@@ -70,10 +71,10 @@ class RosBridge:
         
         # Map info
         self.map_resolution = 0.0
+        self.map_ratio = 0.0 # <- slam map size / state map size
         self.map_origin = Pose()
         
-        self.slam_map_size = slam_map_size
-        self.map_size = 256
+        self.map_size = 0
         self.map_data = [0] * (self.map_size**2)
         self.map_data_trueth = [0] * (self.map_size**2)
         self.mir_pose = [0.0] * 3
@@ -185,6 +186,8 @@ class RosBridge:
         self.mir_path.header.frame_id = self.path_frame
         
         self.map_size = int(copy.deepcopy(state[0]))
+        self.map_ratio = self.slam_map_size / self.map_size
+        self.map_resolution = PARAM_RESOLUTION * self.map_ratio
         
         ignore_index = (self.map_size**2)*2 + 7
         is_change_room = int(state[ignore_index])
@@ -245,7 +248,6 @@ class RosBridge:
 #         if len(self.targets) > 0:
 #             self.publish_target_markers(self.targets) 
         
-        time.sleep(0.5)
         self.reset_navigation()
         self.reset.set()
         
@@ -478,8 +480,6 @@ class RosBridge:
     def callback_map(self, data):
         if self.get_state_event.isSet():
             info = data.info
-            dif = self.slam_map_size // self.map_size
-            self.map_resolution = info.resolution * dif + PARAM_RESOLUTION
             shape = (self.slam_map_size, self.slam_map_size)
             if self.slam_map_size == self.map_size:
                 self.map_data = np.array(data.data)
@@ -489,7 +489,7 @@ class RosBridge:
                 tmp = np.array(data.data).reshape(shape)
 #                 self.map_data = resize(tmp, (self.map_size,self.map_size), anti_aliasing=False).flatten()
 #                 self.map_data = block_reduce(tmp, (dif,dif), np.mean).flatten()
-                self.map_data = block_reduce(tmp, (dif,dif), np.max).flatten()
+                self.map_data = block_reduce(tmp, (int(self.map_ratio),int(self.map_ratio)), np.max).flatten()
             
             self.map_origin = info.origin
         else:
